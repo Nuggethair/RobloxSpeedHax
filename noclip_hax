@@ -1,0 +1,92 @@
+-- Noclip and Invincibility Script
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+local noclipping = false
+local bodyGyro, bodyPosition
+local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+-- Function to start noclipping
+local function startNoclip()
+    if noclipping then return end
+    noclipping = true
+
+    -- Disable health to prevent dying
+    humanoid.Health = humanoid.Health  -- Keep health constant, so they won't die
+
+    -- Create BodyGyro and BodyPosition to allow free movement
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+    bodyGyro.CFrame = character.HumanoidRootPart.CFrame
+    bodyGyro.Parent = character.HumanoidRootPart
+
+    bodyPosition = Instance.new("BodyPosition")
+    bodyPosition.MaxForce = Vector3.new(400000, 400000, 400000)
+    bodyPosition.D = 50  -- Dampening factor for smooth movement
+    bodyPosition.P = 5000  -- Power of the force for movement
+    bodyPosition.Parent = character.HumanoidRootPart
+
+    -- Set the character's collisions to be disabled
+    character.HumanoidRootPart.CanCollide = false
+    for _, part in pairs(character:GetChildren()) do
+        if part:IsA("Part") then
+            part.CanCollide = false
+        end
+    end
+end
+
+-- Function to stop noclipping
+local function stopNoclip()
+    if not noclipping then return end
+    noclipping = false
+
+    -- Destroy the BodyGyro and BodyPosition objects
+    if bodyGyro then
+        bodyGyro:Destroy()
+    end
+    if bodyPosition then
+        bodyPosition:Destroy()
+    end
+
+    -- Reset character collision
+    character.HumanoidRootPart.CanCollide = true
+    for _, part in pairs(character:GetChildren()) do
+        if part:IsA("Part") then
+            part.CanCollide = true
+        end
+    end
+end
+
+-- Function to control movement while noclipping
+local function noclipMovement()
+    if noclipping then
+        -- Move the character based on mouse position
+        local mouse = player:GetMouse()
+        local targetPosition = mouse.Hit.p
+        bodyPosition.Position = targetPosition
+    end
+end
+
+-- Listen for key press to toggle noclip (Press "N" to toggle)
+userInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.N then
+        if noclipping then
+            stopNoclip()
+        else
+            startNoclip()
+        end
+    end
+end)
+
+-- Listen for character respawn and reset the state
+player.CharacterAdded:Connect(function()
+    character = player.Character or player.CharacterAdded:Wait()
+    humanoid = character:WaitForChild("Humanoid")
+end)
+
+-- Continuously update the movement while in noclip mode
+runService.Heartbeat:Connect(function()
+    noclipMovement()
+end)
